@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earth Day Lesson</title>
+    <style>
+        /* Global & Layout Constraints */
+        * { box-sizing: border-box; user-select: none; margin: 0; padding: 0; font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; }
+        body { 
+            width: 100vw; 
+            height: 100vh; 
+            overflow: hidden; 
+            background: url('background.gif') center/cover fixed, #ffe6e6; 
+        }
+
+        /* Maximized Space Constraints */
+        #app-container {
+            position: absolute;
+            top: 0.5cm; 
+            left: 1cm; 
+            right: 1cm; 
+            bottom: calc(0.5cm + 75px); 
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 2vw;
+            border: 0.6vw solid #4CAF50;
+            display: flex; 
+            flex-direction: column;
+            box-shadow: 0 1vw 2vw rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        /* Dynamic Header */
+        #header { 
+            font-size: 4vh; 
+            text-align: center; 
+            padding: 1vh; 
+            background: #c8e6c9; 
+            color: #2e7d32; 
+            font-weight: bold; 
+            border-bottom: 0.5vw solid #4CAF50; 
+            height: 8vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            position: relative;
+        }
+        #points-display {
+            position: absolute;
+            right: 2vw;
+            font-size: 3vh;
+            color: #d84315;
+            background: #ffe0b2;
+            padding: 0.5vh 1.5vw;
+            border-radius: 2vh;
+            border: 0.3vw solid #ffb300;
+        }
+
+        /* Content Area */
+        #content { flex: 1; position: relative; overflow: hidden; }
+        .page { 
+            width: 100%; height: 100%; display: none; 
+            flex-direction: column; justify-content: center; align-items: center; 
+            padding: 2vh 2vw; position: absolute; top: 0; left: 0;
+        }
+        .page.active { display: flex; }
+
+        /* UI Elements */
+        button {
+            padding: 1.5vh 3vw; font-size: 3vh; border-radius: 2vh; 
+            border: 0.4vw solid #388E3C; background: #81C784; color: black;
+            cursor: pointer; font-weight: bold; transition: transform 0.1s, background 0.2s;
+            box-shadow: 0 0.5vh 0 #2E7D32;
+        }
+        button:active { transform: translateY(0.5vh); box-shadow: 0 0 0 #2E7D32; }
+        button:disabled { background: #ccc; border-color: #999; box-shadow: 0 0.5vh 0 #888; color: #666; pointer-events: none; }
+        
+        img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        /* Bottom Nav - Maximized constraints */
+        #bottom-nav {
+            position: fixed; bottom: 0.5cm; left: 1cm; right: 1cm; height: 60px;
+            background: #4CAF50; border-radius: 30px; display: flex; 
+            justify-content: space-around; align-items: center;
+            box-shadow: 0 0.5vw 1vw rgba(0,0,0,0.3); border: 0.3vw solid #2E7D32; z-index: 1000;
+        }
+        .nav-btn { 
+            background: transparent; border: none; box-shadow: none; font-size: 3.5vh;
+            padding: 0 2vw; color: white; text-shadow: 0 0.2vh 0.2vh rgba(0,0,0,0.5); margin: 0;
+        }
+        .nav-btn:active { transform: scale(0.9); box-shadow: none; }
+
+        /* Vocab Grid */
+        .vocab-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2vw; width: 90%; max-height: 80vh; }
+        .vocab-card { 
+            background: white; border: 0.4vw solid #81C784; border-radius: 2vh; 
+            display: flex; flex-direction: column; align-items: center; padding: 1vh;
+        }
+        .vocab-card img { height: 16vh; margin-bottom: 1vh; }
+        .vocab-card span { font-size: 2.5vh; font-weight: bold; color: #2e7d32; text-align: center; }
+
+        /* Matching */
+        .match-row { display: flex; justify-content: center; gap: 2vw; margin-bottom: 4vh; width: 100%; }
+        .match-item {
+            width: 14vw; height: 16vh; background: white; border: 0.4vw solid #4CAF50;
+            border-radius: 2vh; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; font-size: 2vh; font-weight: bold; color: #333; transition: 0.2s;
+            text-align: center; padding: 0.5vh;
+        }
+        .match-item.selected { background: #FFF59D; border-color: #FBC02D; transform: scale(1.05); }
+        .match-item.matched { background: #A5D6A7; border-color: #2E7D32; opacity: 0.6; pointer-events: none; }
+        .match-item.error { background: #ef9a9a; border-color: #c62828; animation: shake 0.3s; }
+        @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-1vw);} 75%{transform:translateX(1vw);} }
+
+        /* Scanner */
+        .scanner-container { display: flex; width: 90%; height: 70vh; align-items: center; justify-content: space-around; }
+        .scanner-left { display: flex; flex-direction: column; align-items: center; gap: 2vh; }
+        .scanner-box { 
+            width: 35vw; height: 45vh; background: #111; border: 0.6vw solid #333; border-radius: 2vh;
+            position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center;
+        }
+        .scanner-image { opacity: 0; transition: opacity 1.5s ease-in, filter 0.5s; height: 35vh; }
+        .scanner-image.xray { filter: invert(0.8) sepia(1) saturate(5) hue-rotate(175deg) brightness(1.5) contrast(1.2); }
+        .scanner-line { 
+            position: absolute; left: 0; width: 100%; height: 1.5vh; background: #0f0; 
+            box-shadow: 0 0 2vh 0.5vh #0f0; display: none; z-index: 10; 
+        }
+        .scanner-choices { display: flex; flex-direction: column; gap: 2vh; align-items: center; width: 30vw; }
+        .scanner-btn { 
+            font-size: 2.5vh; width: 100%; padding: 1.5vh 1vw; 
+            color: black !important; background: white; border: 0.3vw solid #4CAF50;
+        }
+        @keyframes scanSweepEffect { 
+            0% { top: -5%; } 
+            50% { top: 95%; } 
+            100% { top: -5%; } 
+        }
+
+        /* Find Maui Game */
+        .doors-container { position: relative; width: 75vw; height: 45vh; margin-bottom: 2vh; background: rgba(0,0,0,0.05); border-radius: 2vh; overflow: hidden; }
+        .door-wrapper { position: absolute; width: 22vw; height: 40vh; top: 2vh; display: flex; justify-content: center; align-items: flex-end; cursor: pointer; }
+        .door { width: 20vw; height: 38vh; background: #795548; border: 0.5vw solid #4E342E; border-radius: 2vh 2vh 0 0; position: absolute; z-index: 2; display: flex; justify-content: center; align-items: center; font-size: 8vh; transition: transform 0.4s ease-in-out; box-shadow: 0 1vh 2vh rgba(0,0,0,0.3); }
+        .character-behind { height: 32vh; position: absolute; z-index: 1; bottom: 0; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        
+        /* Story Page */
+        .story-layout { display: flex; width: 90%; height: 75vh; align-items: stretch; justify-content: space-between; margin: auto; }
+        .story-left { width: 44%; display: flex; justify-content: center; align-items: center; border: 0.5vw dashed #81C784; border-radius: 2vh; padding: 1vh; background: #fff; }
+        .story-left img { width: 100%; height: 100%; object-fit: contain; border-radius: 1vh; }
+        .story-right { width: 52%; display: flex; flex-direction: column; gap: 2vh; align-items: center; justify-content: center; }
+        .story-q { font-size: 3vh; font-weight: bold; color: #2e7d32; text-align: center; }
+        .story-choices { display: flex; gap: 1.5vw; flex-wrap: wrap; justify-content: center; }
+        .story-pattern { font-size: 3.5vh; font-weight: bold; color: #d84315; text-align: center; margin-top: 1vh; }
+        .story-result { min-height: 10vh; font-size: 2.8vh; font-weight: bold; color: #1565C0; text-align: center; padding: 1.5vh; background: #E3F2FD; border-radius: 2vh; border: 0.3vw solid #90CAF9; display: none; width: 100%; }
+
+        /* Story Reward Page */
+        .reward-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3vw; margin-top: 4vh; width: 90%; }
+        .reward-item { position: relative; cursor: pointer; border: 0.4vw solid #4CAF50; border-radius: 2vh; background: white; padding: 2vh; transition: 0.2s; }
+        .reward-item img { height: 16vh; display: block; margin: auto; }
+        .points-badge { position: absolute; top: -1.5vh; right: -1.5vh; background: #FF9800; color: white; font-size: 3vh; font-weight: bold; padding: 1vh 1.2vh; border-radius: 50%; border: 0.3vw solid white; display: none; z-index: 5; }
+        .reward-item.selected { transform: scale(1.1); border-color: #FF9800; box-shadow: 0 0 2vh #FF9800; }
+        #page-story-reward h2 { font-size: 5vh; color: #2E7D32; text-align: center; }
+        #reward-blank { font-size: 5vh; min-width: 15vw; border-bottom: 0.6vw solid #333; }
+
+        /* Story Review - Updated for larger, readable text and no redundant header */
+        .review-container { width: 90%; height: 70vh; overflow-y: auto; background: white; border-radius: 2vh; border: 0.5vw solid #81C784; padding: 3vh; }
+        .review-item { margin-bottom: 3vh; padding-bottom: 2vh; border-bottom: 0.3vw dashed #ccc; }
+        .review-q { color: #555; font-size: 3.5vh; line-height: 1.4; }
+        .review-a { color: #2e7d32; font-weight: bold; font-size: 4vh; margin-top: 1vh; line-height: 1.4; }
+
+        /* Cafe */
+        .cafe-layout { display: flex; width: 100%; height: 80vh; align-items: center; justify-content: space-between; position: relative; }
+        .cafe-side { width: 18vw; height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+        .cafe-side img { max-height: 55vh; }
+        .cafe-center { width: 62vw; display: flex; flex-direction: column; align-items: center; gap: 2vh; background: #F1F8E9; padding: 3vh 2vh; border-radius: 3vh; border: 0.5vw solid #AED581; position: relative; }
+        .cafe-sentence-box { background: white; padding: 2.5vh; border-radius: 2vh; border: 0.4vw dashed #81C784; width: 100%; text-align: center; }
+        .cafe-sentence { font-size: 3.5vh; font-weight: bold; line-height: 1.8; color: #33691E; }
+        .cafe-slot { display: inline-block; min-width: 10vw; height: 6vh; border-bottom: 0.5vw solid #4CAF50; margin: 0 1vw; text-align: center; color: #d84315; }
+        .cafe-slot img { height: 5.5vh; vertical-align: bottom; }
+        .cafe-vocab-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1vw; margin-top: 1vh; width: 100%; }
+        .cafe-vocab-item { background: white; border: 0.3vw solid #C8E6C9; border-radius: 1.5vh; padding: 0.5vh; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .cafe-vocab-item img { height: 6.5vh; margin-bottom: 0; }
+        .cafe-vocab-item.selected { border-color: #4CAF50; background: #E8F5E9; box-shadow: 0 0 1vh rgba(0,0,0,0.1); }
+        .cafe-reaction { font-size: 12vh; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; display: none; line-height: 1; margin-top: 1vh; }
+        
+        /* 3Rs Game */
+        .rrr-intro { width: 95%; height: 75vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4vh; margin: auto; }
+        .rrr-intro div { background: white; border: 0.5vw solid black; color: black; font-size: 4vh; text-align: left; padding: 5vh; border-radius: 2vh; line-height: 2; width: 100%; box-shadow: 0 1vh 2vh rgba(0,0,0,0.1); }
+        .rrr-mc { display: flex; gap: 4vw; justify-content: center; margin-top: 2vh; width: 100%; }
+        .rrr-mc-choice { width: 35vw; height: 45vh; border: 0.4vw solid black; border-radius: 2vh; cursor: pointer; transition: 0.2s; background: white; padding: 2vh; display: flex; align-items: center; justify-content: center; }
+        .rrr-mc-choice img { max-width: 100%; max-height: 100%; border-radius: 1.5vh; }
+        .rrr-mc-choice:hover { transform: scale(1.05); box-shadow: 0 1vh 2vh rgba(0,0,0,0.15); }
+        .rrr-mc-choice.correct { border-color: #4CAF50; background: #C8E6C9; pointer-events: none; }
+        .rrr-mc-choice.wrong { border-color: #F44336; background: #FFCDD2; animation: shake 0.3s; }
+        .rrr-multi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3vw; margin-top: 2vh; width: 90%; }
+        .rrr-multi-choice { height: 22vh; border: 0.4vw solid black; border-radius: 2vh; cursor: pointer; background: white; padding: 1.5vh; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
+        .rrr-multi-choice img { max-height: 100%; max-width: 100%; }
+        .rrr-multi-choice:hover { transform: scale(1.05); }
+        .rrr-multi-choice.correct { border-color: #4CAF50; background: #C8E6C9; opacity: 0.7; pointer-events: none; transform: scale(0.95); }
+        .rrr-multi-choice.wrong { border-color: #F44336; background: #FFCDD2; animation: shake 0.3s; }
+        
+        /* Floating Book Icon */
+        .toggle-review-btn {
+            position: absolute;
+            bottom: 2vh;
+            right: 2vw;
+            background: #2196F3;
+            border: 0.3vw solid #1565C0;
+            border-radius: 50%;
+            width: 8vh;
+            height: 8vh;
+            font-size: 4vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 0.5vh 1vh rgba(0,0,0,0.2);
+            z-index: 100;
+            padding: 0;
+            color: white;
+        }
+        .toggle-review-btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div id="header">
+        <span id="header-title">🌸 Home 🌸</span>
+        <div id="points-display">⭐ Points: <span id="score">0</span></div>
+    </div>
+
+    <div id="content">
+        <div id="page-home" class="page active">
+            <h1 style="font-size: 8vh; color: #2E7D32; margin-bottom: 5vh; text-shadow: 0.3vh 0.3vh white;">🌍 Earth Day! 🌿</h1>
+            <button onclick="startLesson()" style="font-size: 4vh; padding: 2vh 4vw;">Start Lesson</button>
+        </div>
+
+        <div id="page-vocabulary" class="page"><div class="vocab-grid" id="vocab-grid"></div></div>
+
+        <div id="page-matching" class="page">
+            <h2 style="font-size: 4vh; margin-bottom: 2vh; color: #2E7D32;">Match the picture to the word!</h2>
+            <div class="match-row" id="match-top"></div>
+            <div class="match-row" id="match-bottom"></div>
+            <button id="btn-match-next" style="display:none;" onclick="navigate('scanner')">Next</button>
+        </div>
+
+        <div id="page-scanner" class="page">
+            <div class="scanner-container">
+                <div class="scanner-left">
+                    <div class="scanner-box" id="scanner-box">
+                        <img id="scanner-img" class="scanner-image xray" src="" alt="hidden">
+                        <div id="scanner-line" class="scanner-line"></div>
+                    </div>
+                    <button id="btn-scan" onclick="playScanner()">Scan Now!</button>
+                </div>
+                <div class="scanner-choices" id="scanner-choices"></div>
+            </div>
+            <button id="btn-scan-next" style="display:none; margin-top: 2vh;" onclick="navigate('find-maui')">Find Maui Reward! 🎁</button>
+        </div>
+
+        <div id="page-find-maui" class="page">
+            <h2 id="maui-msg" style="font-size: 4vh; margin-bottom: 2vh; color: #E65100; text-align: center;">Wait for Maui...</h2>
+            <div class="doors-container" id="doors-container">
+                <div class="door-wrapper" id="wrap-0" style="left: 4vw;" onclick="guessDoor(0, this)">
+                    <div class="door">🚪</div>
+                    <img class="character-behind" id="char-0" style="display:none;">
+                </div>
+                <div class="door-wrapper" id="wrap-1" style="left: 25vw;" onclick="guessDoor(1, this)">
+                    <div class="door">🚪</div>
+                    <img class="character-behind" id="char-1" style="display:none;">
+                </div>
+                <div class="door-wrapper" id="wrap-2" style="left: 46vw;" onclick="guessDoor(2, this)">
+                    <div class="door">🚪</div>
+                    <img class="character-behind" id="char-2" style="display:none;">
+                </div>
+            </div>
+            <button id="btn-maui-next" style="display:none; margin-top: 2vh;" onclick="nextAfterMaui()">Next</button>
+        </div>
+
+        <div id="page-story" class="page">
+            <div class="story-layout">
+                <div class="story-left"><img id="story-img" src="" alt="Story Image"></div>
+                <div class="story-right">
+                    <div class="story-q" id="story-q"></div>
+                    <div class="story-choices" id="story-choices"></div>
+                    <div class="story-pattern" id="story-pattern"></div>
+                    <div class="story-result" id="story-result"></div>
+                    <button id="btn-story-next" style="display:none; margin-top: 2vh;" onclick="navigate('story-reward')">Choose a Gift Reward! 🎁</button>
+                </div>
+            </div>
+            <button class="toggle-review-btn" onclick="navigate('story-review')" title="All Answers">📖</button>
+        </div>
+
+        <div id="page-story-reward" class="page">
+            <h2>I will use <span id="reward-blank">____</span> to save the Earth.</h2>
+            <div class="reward-grid" id="reward-grid"></div>
+            <button id="btn-reward-next" style="display:none; margin-top: 4vh;" onclick="nextAfterStoryReward()">Next Question</button>
+        </div>
+
+        <div id="page-story-review" class="page">
+            <div class="review-container" id="review-list"></div>
+            <button style="margin-top: 3vh;" onclick="navigate('cafe')">Next</button>
+            <button class="toggle-review-btn" onclick="goToQuestions()" title="Back to Questions">📖</button>
+        </div>
+
+        <div id="page-cafe" class="page">
+            <div class="cafe-layout">
+                <div class="cafe-side"><img id="cafe-tefiti" src="te fiti.png" alt="Te Fiti"></div>
+                <div class="cafe-center">
+                    <div class="cafe-sentence-box">
+                        <div class="cafe-sentence">
+                            We will <span id="slot-reduce" class="cafe-slot">____</span> <br>
+                            to reduce and reuse our <span id="slot-reuse" class="cafe-slot">____</span>.
+                        </div>
+                    </div>
+                    <div id="cafe-selection-label" style="font-size: 2.5vh; font-weight: bold; color: #2e7d32; margin-top: 1vh;">Step 1: Choose an action</div>
+                    <div class="cafe-vocab-grid" id="cafe-vocab-grid"></div>
+                    
+                    <button id="btn-cafe-give" onclick="showCafeChoices()" style="display:none; margin-top: 1vh; font-size: 4vh;">HELP EARTH 🤲</button>
+                    
+                    <div id="cafe-choices" style="display:none; gap: 2vw; flex-direction: row; margin-top: 1vh;">
+                        <button onclick="resolveCafe(true)" style="background: #FF9800; border-color: #E65100;">Open Gift 🎁</button>
+                        <button onclick="resolveCafe(false)" style="background: #F44336; border-color: #C62828;">Don't Open +3 🛑</button>
+                    </div>
+                    
+                    <div id="cafe-reaction" class="cafe-reaction">🎁</div>
+                    <div id="cafe-result-text" style="font-size: 3vh; font-weight: bold; color: #1565C0; text-align: center; margin-top: 1vh; display: none;"></div>
+                    
+                    <button id="btn-cafe-restart" style="display:none; margin-top: 1vh;" onclick="initCafe()">HELP AGAIN</button>
+                </div>
+                <div class="cafe-side"><img id="cafe-kid" src="moana.png" alt="Moana"></div>
+            </div>
+        </div>
+
+        <div id="page-3rs" class="page">
+            <h2 id="rrr-label" style="font-size: 5vh; color: #2E7D32; margin-bottom: 2vh; text-align: center; text-shadow: 0.2vh 0.2vh white;">Reduce, Reuse, Recycle</h2>
+            <div id="rrr-content" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
+            <button id="btn-rrr-next" style="display:none; margin-top: 4vh;" onclick="next3Rs()">Next</button>
+        </div>
+    </div>
+
+    <div id="bottom-nav">
+        <button class="nav-btn" onclick="navigate('home')">🏠</button>
+        <button class="nav-btn" onclick="navigate('vocabulary')">📖</button>
+        <button class="nav-btn" onclick="navigate('matching')">🧩</button>
+        <button class="nav-btn" onclick="navigate('scanner')">🔍</button>
+        <button class="nav-btn" onclick="navigate('3rs')">♻️</button>
+        <button class="nav-btn" onclick="navigate('story')">📚</button>
+        <button class="nav-btn" onclick="navigate('cafe')">☕</button>
+    </div>
+</div>
+
+<script>
+    const vocabData = [
+        { id: 'bag', word: 'shopping bag', img: 'bag.png' },
+        { id: 'cups', word: 'reusable cup and box', img: 'cups.png' },
+        { id: 'fork', word: 'reusable fork and spoon', img: 'fork.png' },
+        { id: 'plastic', word: 'plastic bag', img: 'plastic.png' },
+        { id: 'straw', word: 'reusable straw', img: 'straw.png' },
+        { id: 'waterbottle', word: 'water bottle', img: 'waterbottle.png' }
+    ];
+
+    const storyData = [
+        { q: "What is Mike holding?", choices: ["shopping bag", "plastic bag"], a: "plastic bag", full: "It is a plastic bag.", pattern: "It is a ________.", img: "story1.png" },
+        { q: "What are the kids doing?", choices: ["dancing", "waiting", "cooking"], a: "waiting", full: "They are waiting for Mike.", pattern: "They are ________ for Mike.", img: "story2.png" },
+        { q: "What is inside Mike's bag?", choices: ["bottle of juice and food", "reusable straw", "cup"], a: "bottle of juice and food", full: "There is a bottle of juice and food.", pattern: "There is a ________.", img: "story3.png" },
+        { q: "Are these good for the Earth?", choices: ["Yes, they are.", "No, they are not."], a: "No, they are not.", full: "No, they are not.", pattern: "________", img: "story4.png" },
+        { q: "What do Emma, Wendy, and Ken use?", choices: ["bottles, forks, and cups", "plastic bags"], a: "bottles, forks, and cups", full: "They use a water bottle, a fork, and a cup.", pattern: "They use ________.", img: "story5.png" },
+        { q: "What is wrong?", choices: ["clean", "full of trash"], a: "full of trash", full: "The mountain is full of trash.", pattern: "The mountain is ________.", img: "story6.png" },
+        { q: "What day is today?", choices: ["Mother's Day", "Earth Day"], a: "Earth Day", full: "It is Earth Day.", pattern: "It is ________.", img: "story7.png" },
+        { q: "What is she doing?", choices: ["cleaning", "washing", "shopping"], a: "cleaning", full: "She is cleaning the mountain.", pattern: "She is ________ the mountain.", img: "story8.png" },
+        { q: "How can we help?", choices: ["sort garbage", "throw trash"], a: "sort garbage", full: "We can sort the garbage.", pattern: "We can ________.", img: "story9.png" },
+        { q: "What is wrong with Mike?", choices: ["He uses less bags.", "He uses more bags."], a: "He uses more bags.", full: "He uses too many plastic bags.", pattern: "________", img: "story10.png" },
+        { q: "Is Mike helping the Earth now?", choices: ["Yes, he is.", "No, he is not."], a: "Yes, he is.", full: "Yes, he is helping the Earth now.", pattern: "________", img: "story11.png" }
+    ];
+
+    const cafeSpecificData = [
+        { id: 'straw', word: 'reusable straw', img: 'straw.png' },
+        { id: 'cups', word: 'reusable cup and box', img: 'cups.png' },
+        { id: 'bag', word: 'shopping bag', img: 'bag.png' },
+        { id: 'waterbottle', word: 'water bottle', img: 'waterbottle.png' },
+        { id: 'bike', word: 'riding a bike', img: 'bike.gif' },
+        { id: 'lightsoff', word: 'turn off lights', img: 'lights_off.gif' },
+        { id: 'donate', word: 'donate toys', img: 'donate_toys.gif' },
+        { id: 'car', word: 'driving a car', img: 'car.gif' }
+    ];
+
+    const rrrData = [
+        { type: 'intro', text: "<strong>Reduce:</strong> Use less things to make less trash.<br><strong>Reuse:</strong> Use things again instead of throwing them away.<br><strong>Recycle:</strong> Turn old things into new things!" },
+        { type: 'mc', label: 'Reduce', q: 'Which one reduces pollution?', choices: [{img: 'car.gif', correct: false}, {img: 'bike.gif', correct: true}] },
+        { type: 'mc', label: 'Reduce', q: 'Which one saves electricity?', choices: [{img: 'lights_on.gif', correct: false}, {img: 'lights_off.gif', correct: true}] },
+        { type: 'mc', label: 'Reuse', q: 'Which one is better to reuse?', choices: [{img: 'plastic_bottle.png', correct: false}, {img: 'waterbottle.png', correct: true}] },
+        { type: 'mc', label: 'Reuse', q: 'What to do with old toys?', choices: [{img: 'throw_toys.gif', correct: false}, {img: 'donate_toys.gif', correct: true}] },
+        { type: 'multi', label: 'Recycle', q: 'Click the things we can recycle!', choices: [
+            {img: 'newspaper.png', correct: true},
+            {img: 'plastic_bottle.png', correct: true},
+            {img: 'waterbottle.png', correct: false},
+            {img: 'straw.png', correct: false},
+            {img: 'bike.gif', correct: false},
+            {img: 'bag.png', correct: false}
+        ], required: 2 }
+    ];
+
+    let points = 0; let audioCtx = null; let mp3Audio = null; let mp3Timeout = null;
+    let scannerQueue = []; let currentScannerItem = null; let storyIndex = 0;
+    let rrrIndex = 0; let rrrFound = 0;
+    const pageTitles = { 'home': 'Home', 'vocabulary': 'Vocabulary', 'matching': 'Matching Game', 'scanner': 'X-Ray Scanner', '3rs': 'Reduce, Reuse, Recycle', 'find-maui': 'Find Maui', 'story': 'Story Time', 'story-reward': 'Story Reward', 'story-review': 'Story Review', 'cafe': "Te Fiti's Cafe" };
+
+    function shuffle(array) {
+        let currentIndex = array.length, randomIndex;
+        while (currentIndex > 0) {
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
+        return array;
+    }
+
+    function initAudioCtx() { if (!audioCtx) { const AudioContext = window.AudioContext || window.webkitAudioContext; audioCtx = new AudioContext(); } if (audioCtx.state === 'suspended') audioCtx.resume(); }
+
+    function playTone(freq, type, duration, vol=0.1) {
+        if (!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime); gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
+    }
+
+    const Synths = {
+        click: () => { initAudioCtx(); playTone(600, 'sine', 0.1); },
+        correct: () => { initAudioCtx(); playTone(440, 'sine', 0.1); setTimeout(()=>playTone(554, 'sine', 0.1), 100); setTimeout(()=>playTone(659, 'sine', 0.2), 200); },
+        wrong: () => { initAudioCtx(); playTone(150, 'sawtooth', 0.3); },
+        win: () => { initAudioCtx(); let t = 0; [523, 659, 783, 1046].forEach(f => { setTimeout(() => playTone(f, 'sine', 0.15), t); t += 100; }); },
+        prank: () => { initAudioCtx(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'square'; osc.frequency.setValueAtTime(100, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(50, audioCtx.currentTime + 1); gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 1); },
+        scanner: () => { 
+            initAudioCtx(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); 
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(200, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 1.5); osc.frequency.linearRampToValueAtTime(200, audioCtx.currentTime + 3); gain.gain.setValueAtTime(0.1, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 3); 
+        }
+    };
+
+    function playMP3(src) { stopMP3(); mp3Audio = new Audio(src); mp3Audio.play().catch(e => console.log('MP3 Play error:', e)); mp3Timeout = setTimeout(stopMP3, 4000); }
+    
+    // Explicitly stops all playing MP3 audio. Called constantly when switching scenes.
+    function stopMP3() { 
+        if (mp3Audio) { 
+            mp3Audio.pause(); 
+            mp3Audio.currentTime = 0; 
+            mp3Audio = null; 
+        } 
+        if (mp3Timeout) { 
+            clearTimeout(mp3Timeout); 
+            mp3Timeout = null; 
+        } 
+    }
+    
+    function addPoints(pts) { points += pts; document.getElementById('score').innerText = points; }
+
+    let mauiTimers = []; 
+    function stopMauiAnimations() {
+        mauiTimers.forEach(t => clearTimeout(t)); mauiTimers = [];
+        isShufflingDoors = false; 
+    }
+
+    function navigate(pageId) {
+        stopMP3(); // Hard stop any MP3 from previous action
+        Synths.click();
+        stopMauiAnimations(); 
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page-' + pageId).classList.add('active');
+        document.getElementById('header-title').innerText = `🌸 ${pageTitles[pageId]} 🌸`;
+        if(pageId === 'vocabulary') initVocab();
+        if(pageId === 'matching') initMatching();
+        if(pageId === 'scanner') initScanner();
+        if(pageId === '3rs') init3Rs();
+        if(pageId === 'find-maui') startMauiShuffle();
+        if(pageId === 'story') initStory();
+        if(pageId === 'story-reward') initStoryReward();
+        if(pageId === 'story-review') initStoryReview();
+        if(pageId === 'cafe') initCafe();
+    }
+
+    function startLesson() { stopMP3(); initAudioCtx(); navigate('vocabulary'); }
+
+    function initVocab() {
+        const grid = document.getElementById('vocab-grid'); grid.innerHTML = '';
+        vocabData.forEach(v => { grid.innerHTML += `<div class="vocab-card"><img src="${v.img}" alt="${v.word}"><span>${v.word}</span></div>`; });
+    }
+
+    let matchSelection = { img: null, word: null }; let matchPairsMatched = 0;
+    function initMatching() {
+        const items = vocabData.slice(0, 5); const topRow = document.getElementById('match-top'); const botRow = document.getElementById('match-bottom');
+        topRow.innerHTML = ''; botRow.innerHTML = ''; let imgs = shuffle([...items]); let words = shuffle([...items]);
+        matchSelection = { img: null, word: null }; matchPairsMatched = 0; document.getElementById('btn-match-next').style.display = 'none';
+        imgs.forEach(v => { const el = document.createElement('div'); el.className = 'match-item img-item'; el.dataset.id = v.id; el.innerHTML = `<img src="${v.img}" alt="${v.word}">`; el.onclick = () => handleMatchClick(el, 'img'); topRow.appendChild(el); });
+        words.forEach(v => { const el = document.createElement('div'); el.className = 'match-item'; el.dataset.id = v.id; el.innerText = v.word; el.onclick = () => handleMatchClick(el, 'word'); botRow.appendChild(el); });
+    }
+
+    function handleMatchClick(el, type) {
+        if (el.classList.contains('matched')) return; Synths.click();
+        document.querySelectorAll(`.match-row:nth-child(${type==='img'?2:3}) .match-item`).forEach(n => n.classList.remove('selected'));
+        el.classList.add('selected'); matchSelection[type] = el; if (matchSelection.img && matchSelection.word) checkMatch();
+    }
+
+    function checkMatch() {
+        const imgEl = matchSelection.img; const wordEl = matchSelection.word;
+        if (imgEl.dataset.id === wordEl.dataset.id) { Synths.correct(); imgEl.classList.remove('selected'); wordEl.classList.remove('selected'); imgEl.classList.add('matched'); wordEl.classList.add('matched'); matchPairsMatched++; if (matchPairsMatched >= 5) { document.getElementById('btn-match-next').style.display = 'block'; Synths.win(); } }
+        else { Synths.wrong(); imgEl.classList.add('error'); wordEl.classList.add('error'); setTimeout(() => { imgEl.classList.remove('error', 'selected'); wordEl.classList.remove('error', 'selected'); }, 300); }
+        matchSelection = { img: null, word: null };
+    }
+
+    let isScanning = false; let hasScanned = false;
+    function initScanner() {
+        if (scannerQueue.length === 0) scannerQueue = shuffle([...vocabData]); currentScannerItem = scannerQueue.pop(); hasScanned = false; isScanning = false;
+        document.getElementById('btn-scan').disabled = false; const scannerImg = document.getElementById('scanner-img');
+        scannerImg.style.opacity = '0'; scannerImg.src = currentScannerItem.img; scannerImg.classList.add('xray'); document.getElementById('btn-scan-next').style.display = 'none';
+        const line = document.getElementById('scanner-line'); line.style.display = 'none'; line.style.animation = 'none';
+        const choicesDiv = document.getElementById('scanner-choices'); choicesDiv.innerHTML = '';
+        let currentChoices = shuffle([currentScannerItem, ...shuffle(vocabData.filter(v => v.id !== currentScannerItem.id)).slice(0, 2)]);
+        currentChoices.forEach(c => { const btn = document.createElement('button'); btn.className = 'scanner-btn'; btn.innerText = c.word; btn.onclick = () => handleScannerGuess(c.id, btn); choicesDiv.appendChild(btn); });
+    }
+
+    function playScanner() {
+        if(isScanning || hasScanned) return; 
+        isScanning = true; 
+        document.getElementById('btn-scan').disabled = true;
+        Synths.scanner(); 
+        const line = document.getElementById('scanner-line'); const scannerImg = document.getElementById('scanner-img');
+        line.style.display = 'block'; line.style.animation = 'scanSweepEffect 3s linear infinite';
+        setTimeout(() => { scannerImg.style.opacity = '1'; }, 500); 
+        setTimeout(() => { line.style.display = 'none'; line.style.animation = 'none'; hasScanned = true; isScanning = false; }, 3000);
+    }
+
+    function handleScannerGuess(id, btn) {
+        if (!hasScanned) return; if (id === currentScannerItem.id) { Synths.correct(); btn.style.background = '#2E7D32'; btn.style.color = 'white'; document.getElementById('scanner-img').classList.remove('xray'); document.getElementById('btn-scan-next').style.display = 'block'; Array.from(document.getElementById('scanner-choices').children).forEach(b => b.disabled = true); }
+        else { Synths.wrong(); btn.disabled = true; btn.style.background = '#ef9a9a'; }
+    }
+
+    let mauiWinnerId = ""; let isShufflingDoors = false;
+    function startMauiShuffle() {
+        if (isShufflingDoors) return; 
+        
+        stopMP3();
+        stopMauiAnimations(); 
+        isShufflingDoors = true;
+        document.getElementById('btn-maui-next').style.display = 'none';
+        document.getElementById('maui-msg').innerText = "LOOK! MAUI IS HERE!";
+        
+        const wrappers = [document.getElementById('wrap-0'), document.getElementById('wrap-1'), document.getElementById('wrap-2')];
+        const initialPos = [4, 25, 46];
+
+        wrappers.forEach((w, idx) => {
+            w.style.transition = 'none'; 
+            w.style.left = initialPos[idx] + 'vw';
+            const char = w.querySelector('.character-behind');
+            char.removeAttribute('src'); 
+            char.style.display = 'none'; 
+            char.style.opacity = '0';
+            const door = w.querySelector('.door');
+            door.style.opacity = '1'; 
+            door.style.transform = 'translateY(0)';
+        });
+
+        setTimeout(() => wrappers.forEach(w => w.style.transition = 'left 0.4s cubic-bezier(0.45, 0.05, 0.55, 0.95)'), 50);
+
+        const winIdx = Math.floor(Math.random() * 3);
+        mauiWinnerId = `char-${winIdx}`;
+        const mauiEl = document.getElementById(mauiWinnerId);
+        mauiEl.src = "maui.png";
+        mauiEl.style.display = 'block'; 
+        
+        const winningDoor = wrappers[winIdx].querySelector('.door');
+
+        mauiTimers.push(setTimeout(() => { 
+            mauiEl.style.opacity = '1'; 
+            winningDoor.style.transform = 'translateY(-20vh)'; 
+        }, 500));
+
+        mauiTimers.push(setTimeout(() => {
+            winningDoor.style.transform = 'translateY(0)'; 
+            
+            mauiTimers.push(setTimeout(() => {
+                mauiEl.style.opacity = '0';
+                document.getElementById('maui-msg').innerText = "MIXING THEM UP...";
+                Synths.click();
+
+                let steps = [600, 500, 450, 400, 350, 300, 250, 200, 150, 100];
+                let stepIdx = 0;
+                let currentPos = [4, 25, 46];
+
+                function doShuffleStep() {
+                    if (stepIdx >= steps.length) {
+                        isShufflingDoors = false; 
+                        document.getElementById('maui-msg').innerText = "WHERE IS MAUI? GUESS!";
+                        wrappers.forEach(w => w.style.transition = 'left 0.4s ease-in-out'); 
+                        return;
+                    }
+
+                    let currentSpeed = steps[stepIdx];
+                    let transitionSpeed = Math.max(0.1, (currentSpeed / 1000) - 0.05);
+                    wrappers.forEach(w => w.style.transition = `left ${transitionSpeed}s ease-in-out`);
+
+                    currentPos = shuffle(currentPos);
+                    wrappers.forEach((w, idx) => { w.style.left = currentPos[idx] + 'vw'; });
+                    Synths.click();
+                    
+                    stepIdx++;
+                    mauiTimers.push(setTimeout(doShuffleStep, currentSpeed));
+                }
+
+                doShuffleStep();
+                
+            }, 400));
+        }, 1500)); 
+    }
+
+    function guessDoor(initialIdx, el) {
+        if(isShufflingDoors) return;
+        isShufflingDoors = true; 
+        stopMP3();
+
+        const hiddenChar = el.querySelector('.character-behind');
+        const isMaui = hiddenChar.id === mauiWinnerId;
+        const door = el.querySelector('.door');
+
+        door.style.transform = 'translateY(-20vh)';
+        if (isMaui) { hiddenChar.style.opacity = '1'; }
+
+        if (isMaui) {
+            addPoints(3); playMP3('yehey.mp3'); Synths.win();
+            document.getElementById('maui-msg').innerText = "YEHEY! YOU FOUND MAUI! +3";
+        } else {
+            addPoints(1); playMP3('ohno.mp3'); Synths.wrong();
+            document.getElementById('maui-msg').innerText = "OH NO! MAUI WAS HIDDEN. +1";
+        }
+
+        setTimeout(() => {
+            [0, 1, 2].forEach(i => {
+                const char = document.getElementById(`char-${i}`);
+                const d = char.parentElement.querySelector('.door');
+                if (char.id === mauiWinnerId) { 
+                    char.style.display = 'block';
+                    char.style.opacity = '1'; 
+                } else {
+                    char.style.display = 'none'; 
+                }
+                d.style.transform = 'translateY(-20vh)';
+            });
+            document.getElementById('btn-maui-next').style.display = 'block';
+        }, 1000);
+    }
+
+    function nextAfterMaui() { if (scannerQueue.length > 0) navigate('scanner'); else navigate('story'); }
+
+    function goToQuestions() {
+        if (storyIndex >= storyData.length) storyIndex = 0;
+        navigate('story');
+    }
+
+    function initStory() {
+        if (storyIndex >= storyData.length) { navigate('story-review'); return; }
+        const s = storyData[storyIndex]; 
+        document.getElementById('story-img').src = s.img; 
+        document.getElementById('story-q').innerText = s.q;
+        document.getElementById('story-pattern').innerText = s.pattern;
+        document.getElementById('story-pattern').style.display = 'block';
+        document.getElementById('story-result').style.display = 'none'; 
+        document.getElementById('btn-story-next').style.display = 'none';
+        const choicesDiv = document.getElementById('story-choices'); choicesDiv.innerHTML = '';
+        s.choices.forEach(c => { 
+            const btn = document.createElement('button'); btn.innerText = c; 
+            btn.onclick = () => handleStoryAnswer(c, s); 
+            choicesDiv.appendChild(btn); 
+        });
+    }
+
+    function handleStoryAnswer(ans, s) {
+        if (ans === s.a) { 
+            Synths.correct(); 
+            const res = document.getElementById('story-result'); 
+            document.getElementById('story-pattern').style.display = 'none';
+            res.style.display = 'block'; 
+            res.innerText = s.full; 
+            document.getElementById('btn-story-next').style.display = 'block'; 
+            Array.from(document.getElementById('story-choices').children).forEach(b => b.disabled = true); 
+        }
+        else { Synths.wrong(); }
+    }
+
+    function initStoryReward() {
+        document.getElementById('reward-blank').innerText = "____"; document.getElementById('reward-blank').style.color = "#d84315"; 
+        document.getElementById('btn-reward-next').style.display = 'none';
+        const grid = document.getElementById('reward-grid'); grid.innerHTML = ''; let hiddenPts = shuffle([1, 2, 1, 3, 2, 1]); 
+        vocabData.forEach((v, idx) => { const item = document.createElement('div'); item.className = 'reward-item'; item.innerHTML = `<img src="${v.img}" alt="${v.word}"><div class="points-badge" id="badge-${idx}">+${hiddenPts[idx]}</div>`; item.onclick = () => selectRewardItem(item, v, hiddenPts[idx], idx); grid.appendChild(item); });
+    }
+
+    function selectRewardItem(el, v, pts, idx) {
+        if(document.getElementById('btn-reward-next').style.display === 'block') return;
+        stopMP3();
+        Synths.win(); el.classList.add('selected'); const blank = document.getElementById('reward-blank');
+        blank.innerHTML = `<img src="${v.img}" style="height:4.5vh; vertical-align:middle; margin-right: 0.5vw;"> ${v.word}`; 
+        blank.style.color = "#2e7d32"; document.querySelectorAll('.points-badge').forEach(b => b.style.display = 'block'); 
+        addPoints(pts); document.getElementById('btn-reward-next').style.display = 'block';
+    }
+
+    function nextAfterStoryReward() { storyIndex++; navigate('story'); }
+
+    function initStoryReview() {
+        const list = document.getElementById('review-list'); list.innerHTML = '';
+        storyData.forEach(s => { list.innerHTML += `<div class="review-item"><div class="review-q">${s.q}</div><div class="review-a">${s.full}</div></div>`; });
+    }
+
+    let cafeSelections = { reduce: null, reuse: null };
+    function initCafe() {
+        stopMP3(); // Stop any audio from prior stages
+        cafeSelections = { reduce: null, reuse: null };
+        document.getElementById('slot-reduce').innerHTML = '____'; document.getElementById('slot-reuse').innerHTML = '____';
+        document.getElementById('cafe-selection-label').innerText = "Step 1: Choose an action"; document.getElementById('btn-cafe-give').style.display = 'none';
+        document.getElementById('cafe-choices').style.display = 'none'; document.getElementById('cafe-result-text').style.display = 'none';
+        document.getElementById('btn-cafe-restart').style.display = 'none'; document.getElementById('cafe-reaction').style.display = 'none';
+        document.getElementById('cafe-tefiti').src = "te fiti.png"; document.getElementById('cafe-kid').src = "moana.png";
+        document.getElementById('cafe-vocab-grid').style.display = 'grid'; document.getElementById('cafe-selection-label').style.display = 'block';
+        
+        const grid = document.getElementById('cafe-vocab-grid'); grid.innerHTML = '';
+        cafeSpecificData.forEach(v => { const item = document.createElement('div'); item.className = 'cafe-vocab-item'; item.innerHTML = `<img src="${v.img}" alt="${v.word}">`; item.onclick = () => selectCafeGift(v, item); grid.appendChild(item); });
+    }
+
+    function selectCafeGift(v, el) {
+        Synths.click();
+        if (!cafeSelections.reduce) { 
+            cafeSelections.reduce = v; el.classList.add('selected'); 
+            document.getElementById('slot-reduce').innerHTML = `<img src="${v.img}">`; 
+            document.getElementById('cafe-selection-label').innerText = "Step 2: Choose an item"; 
+        }
+        else if (!cafeSelections.reuse) { 
+            cafeSelections.reuse = v; el.classList.add('selected'); 
+            document.getElementById('slot-reuse').innerHTML = `<img src="${v.img}">`; 
+            document.getElementById('cafe-selection-label').innerText = "Ready to help the Earth!"; 
+            document.getElementById('btn-cafe-give').style.display = 'block'; 
+            document.querySelectorAll('.cafe-vocab-item').forEach(item => item.style.pointerEvents = 'none'); 
+        }
+    }
+
+    function showCafeChoices() { Synths.click(); document.getElementById('btn-cafe-give').style.display = 'none'; document.getElementById('cafe-choices').style.display = 'flex'; document.getElementById('cafe-vocab-grid').style.display = 'none'; document.getElementById('cafe-selection-label').style.display = 'none'; }
+
+    function resolveCafe(didOpen) {
+        stopMP3();
+        document.getElementById('cafe-choices').style.display = 'none'; const resultText = document.getElementById('cafe-result-text'); resultText.style.display = 'block'; document.getElementById('btn-cafe-restart').style.display = 'block';
+        
+        // Custom probability logic:
+        const rand = Math.random() * 100;
+        let actualReward;
+        if (rand < 10) {
+            actualReward = 10;      // 10% chance
+        } else if (rand < 30) {
+            actualReward = 7;       // 20% chance (10 + 20)
+        } else if (rand < 55) {
+            actualReward = 5;       // 25% chance (30 + 25)
+        } else {
+            actualReward = 'garbage'; // The rest (45%)
+        }
+        
+        const reactEmoji = document.getElementById('cafe-reaction'); reactEmoji.style.display = 'block';
+        const tefiti = document.getElementById('cafe-tefiti'); const kid = document.getElementById('cafe-kid');
+        reactEmoji.style.animation = 'none'; reactEmoji.offsetHeight; reactEmoji.style.animation = null;
+        
+        if (didOpen) {
+            if (actualReward === 'garbage') { reactEmoji.innerText = '🗑️'; resultText.innerText = "Oh no! A garbage can!"; tefiti.src = "bad_reaction_1.gif"; kid.src = "angry.gif"; playMP3('laughing.mp3'); Synths.prank(); }
+            else { reactEmoji.innerText = '🌟'; resultText.innerText = `You won +${actualReward} Points!`; addPoints(actualReward); tefiti.src = "good_reaction_1.gif"; kid.src = "happy.gif"; playMP3('yehey.mp3'); Synths.win(); }
+        } else {
+            if (actualReward === 'garbage') { reactEmoji.innerText = '🛡️'; resultText.innerText = "Safe! It was a garbage can! +3 Points"; addPoints(3); tefiti.src = "bad_reaction_1.gif"; kid.src = "happy.gif"; playMP3('yehey.mp3'); Synths.win(); }
+            else { reactEmoji.innerText = '💨'; resultText.innerText = `You missed a +${actualReward} Reward! (+3 Pts)`; addPoints(3); tefiti.src = "bad_reaction_1.gif"; kid.src = "cashier_meh.gif"; playMP3('ohno.mp3'); Synths.wrong(); }
+        }
+    }
+
+    function init3Rs() {
+        rrrIndex = 0;
+        render3Rs();
+    }
+
+    function render3Rs() {
+        const content = document.getElementById('rrr-content');
+        const label = document.getElementById('rrr-label');
+        const nextBtn = document.getElementById('btn-rrr-next');
+        content.innerHTML = '';
+        nextBtn.style.display = 'none';
+
+        if (rrrIndex >= rrrData.length) {
+            label.style.display = 'block';
+            label.innerText = "Great Job!";
+            content.innerHTML = '<div style="font-size: 4vh; color: #2E7D32; font-weight: bold; margin-top: 5vh;">You learned the 3Rs! 🌍</div>';
+            return;
+        }
+
+        const step = rrrData[rrrIndex];
+        
+        if (step.type === 'intro') {
+            label.style.display = 'none';
+            content.innerHTML = `<div class="rrr-intro">
+                <div>${step.text}</div>
+                <button onclick="next3Rs()" style="margin-top: 2vh; font-size: 4vh; padding: 2vh 4vw; border-radius: 2vh;">Let's Try!</button>
+            </div>`;
+        } else if (step.type === 'mc') {
+            label.style.display = 'block';
+            label.innerText = step.label;
+            let html = `<div style="font-size: 3.5vh; color: #1565C0; font-weight: bold;">${step.q}</div><div class="rrr-mc">`;
+            
+            let currentChoices = shuffle([...step.choices]); 
+            currentChoices.forEach((c, i) => {
+                html += `<div class="rrr-mc-choice" id="rrr-choice-${i}" onclick="handle3RsMC(${c.correct}, 'rrr-choice-${i}')">
+                    <img src="${c.img}" onerror="this.style.backgroundColor='#eee'">
+                </div>`;
+            });
+            html += `</div>`;
+            content.innerHTML = html;
+        } else if (step.type === 'multi') {
+            label.style.display = 'block';
+            label.innerText = step.label;
+            rrrFound = 0;
+            let html = `<div style="font-size: 3.5vh; color: #1565C0; font-weight: bold;">${step.q}</div><div class="rrr-multi-grid">`;
+            
+            let currentChoices = shuffle([...step.choices]);
+            currentChoices.forEach((c, i) => {
+                html += `<div class="rrr-multi-choice" id="rrr-multi-${i}" onclick="handle3RsMulti(${c.correct}, 'rrr-multi-${i}')">
+                    <img src="${c.img}" onerror="this.style.backgroundColor='#eee'">
+                </div>`;
+            });
+            html += `</div>`;
+            content.innerHTML = html;
+        }
+    }
+
+    function handle3RsMC(isCorrect, id) {
+        const el = document.getElementById(id);
+        if (el.classList.contains('correct') || el.classList.contains('wrong')) return;
+
+        if (isCorrect) {
+            Synths.correct();
+            addPoints(2);
+            el.classList.add('correct');
+            document.querySelectorAll('.rrr-mc-choice').forEach(n => n.style.pointerEvents = 'none');
+            document.getElementById('btn-rrr-next').style.display = 'block';
+        } else {
+            Synths.wrong();
+            el.classList.add('wrong');
+            setTimeout(() => el.classList.remove('wrong'), 400);
+        }
+    }
+
+    function handle3RsMulti(isCorrect, id) {
+        const el = document.getElementById(id);
+        if (el.classList.contains('correct') || el.classList.contains('wrong')) return;
+
+        if (isCorrect) {
+            Synths.correct();
+            el.classList.add('correct');
+            rrrFound++;
+            addPoints(1);
+            if (rrrFound >= rrrData[rrrIndex].required) {
+                Synths.win();
+                document.querySelectorAll('.rrr-multi-choice').forEach(n => n.style.pointerEvents = 'none');
+                document.getElementById('btn-rrr-next').style.display = 'block';
+            }
+        } else {
+            Synths.wrong();
+            el.classList.add('wrong');
+            setTimeout(() => el.classList.remove('wrong'), 400);
+        }
+    }
+
+    function next3Rs() {
+        stopMP3();
+        rrrIndex++;
+        render3Rs();
+    }
+
+    document.querySelectorAll('img').forEach(img => { img.onerror = function() { this.style.backgroundColor = '#ccc'; this.style.border = '1px solid #999'; this.onerror = null; }; });
+</script>
+</body>
+</html>
